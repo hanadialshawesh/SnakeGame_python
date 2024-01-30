@@ -1,7 +1,7 @@
-from SnakeGame1 import SnakeGame1
+
 from SnakeGame2 import SnakeGame2
 def main():
-    game1 = SnakeGame1()
+    
     game2 = SnakeGame2()
     
     print("-- Welcome to our game, which is a snake and ladders game --\n")
@@ -31,14 +31,12 @@ def main():
     exit_game = True
     while exit_game:
         print("Please choose how you want to play:")
-        print("1. with the computer\t2. with your friend\t3. exit")
+        print("1.with your friend\t3. exit")
     
         answer = int(input())
     
         if answer == 1:
-            game1.startgame()
-        elif answer == 2:
-            game2.startgame()
+           game2.startgame()
         elif answer == 3:
             exit_game = False
             print("Goodbye")

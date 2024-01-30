@@ -1,5 +1,7 @@
 import random
 from CircularLinkedList import CircularLinkedList
+from Server import SnakeLaddersServer
+from Client import SnakeLaddersClient
 from player import Player
 
 class SnakeGame2:
@@ -13,11 +15,11 @@ class SnakeGame2:
     def startgame(self):
         print("===========================================")
         print("The two players enter your name")
-        A = input("Player(A) name: ")
-        B = input("Player(B) name: ")
+        A = SnakeLaddersServer()
+        B = Client() #client
         print("===========================================")
 
-        playerA = Player(A)#user with user
+        playerA = Player(A)
         playerB = Player(B)
 
         r = random.randint(1, 10)
@@ -25,8 +27,8 @@ class SnakeGame2:
 
         if r % 2 == 0:  # first roll
             print(f"{A}! you start")
-            self.players.add_first(playerA)
-            self.players.add_last(playerB)
+            self.players.add_first(playerA)#server
+            self.players.add_last(playerB)#
         else:
             print(f"{B}! you start")
             self.players.add_first(playerB)
