@@ -1,7 +1,5 @@
 import random
 from CircularLinkedList import CircularLinkedList
-from Server import SnakeLaddersServer
-from Client import SnakeLaddersClient
 from player import Player
 
 class SnakeGame2:
@@ -15,8 +13,8 @@ class SnakeGame2:
     def startgame(self):
         print("===========================================")
         print("The two players enter your name")
-        A = SnakeLaddersServer()
-        B = Client() #client
+        A = "Teletubbies"
+        B = input("Player (B) enter your name: ")
         print("===========================================")
 
         playerA = Player(A)
