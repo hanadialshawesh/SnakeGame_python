@@ -1,51 +1,63 @@
+import selectors
+import sys
 import socket
-import random
+import types
 
-def roll_dice():
-    return random.randint(1, 6)
 
-def process_player_input():
-    # Process player input (e.g., roll dice)
-    return roll_dice()
+def accept_wrapper(sock: socket.socket):
+    conn, addr = sock.accept()
+    print(f"Accepted connection from {addr}")
+    conn.setblocking(False)
 
-def send_game_state(client_socket, players):
-    game_state = {"players": players}
-    client_socket.sendall(str(game_state).encode("utf-8"))
+    data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"")
+    events = selectors.EVENT_READ | selectors.EVENT_WRITE
 
-def start_server():
-    host = "127.0.0.1"
-    port = 65432
+    sel.register(conn, events, data=data)
 
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((host, port))
-    server_socket.listen()
 
-    print(f"Server is listening on {host}:{port}")
+def service_connection(key: selectors.SelectorKey, mask):
+    sock: socket.socket = key.fileobj
+    data = key.data
 
-    client_socket, client_address = server_socket.accept()
-    print(f"New connection from {client_address}")
+    if mask & selectors.EVENT_READ:
+        recv_data = sock.recv(1024)
 
-    players = [{"name": "Player 1", "position": 0}]  # You can have multiple players in a list
+        if recv_data:
+            data.outb += recv_data
+        else:
+            print(f"Closing connection to {data.addr}")
+            sel.unregister(sock)
+            sock.close()
 
+    if mask & selectors.EVENT_WRITE:
+        if data.outb:
+            print(f"Echoing {data.outb!r} to {data.addr}")
+            
+            sent = sock.send(data.outb)
+            data.outb = data.outb[sent:]
+
+
+sel = selectors.DefaultSelector()
+host, port = sys.argv[1], int(sys.argv[2])
+
+lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+lsock.bind((host, port))
+lsock.listen()
+
+print(f'Listening on {(host, port)}')
+lsock.setblocking(False)
+sel.register(lsock, selectors.EVENT_READ, data=None)
+
+try:
     while True:
-        try:
-            data = client_socket.recv(1024).decode("utf-8")
-            if not data:
-                break
+        events = sel.select(timeout=None)
 
-            if data.upper() == "R":
-                # Process player input and update game state
-                players[0]["position"] += process_player_input()
-
-                # Send updated game state to the client
-                send_game_state(client_socket, players)
-
-        except Exception as e:
-            print(f"Error handling client: {e}")
-            break
-
-    client_socket.close()
-    server_socket.close()
-
-if __name__ == "__main__":
-    start_server()
+        for key, mask in events:
+            if key.data is None:
+                accept_wrapper(key.fileobj)
+            else:
+                service_connection(key, mask)
+except KeyboardInterrupt:
+    print("Caught keyboard interrupt, exiting")
+finally:
+    sel.close()

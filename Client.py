@@ -1,40 +1,81 @@
-
-# import random
-# from CircularLinkedList import CircularLinkedList
-# from player import Player
-
-# import socket
-
-# HOST = "127.0.0.1" # The server's hostname or IP address
-# PORT = 65432  # The port used by the server
-
-# with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-#     s.connect((HOST,PORT))
-#     s.sendall(b"Hello, Hanadi")
+import sys
 import socket
+import selectors
+import types
 
-def start_client():
-    host = "127.0.0.1"
-    port = 65432
+sel = selectors.DefaultSelector()
+messages = [
+    b"Message 1 from client",
+    b"Message 2 from client"
+]
 
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
 
+def start_connections(host, port, num_conns):
+    server_addr = (host, port)
+
+    for i in range(0, num_conns):
+        connid = i + 1
+        print(f"Starting connection {connid} to {server_addr}")
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(False)
+        sock.connect_ex(server_addr)
+    
+    events = selectors.EVENT_READ | selectors.EVENT_WRITE
+    data = types.SimpleNamespace(
+        connid=connid,
+        msg_total=sum(len(m) for m in messages),
+        recv_total=0,
+        messages=messages.copy(),
+        outb=b"",
+    )
+
+    sel.register(sock, events, data=data)
+
+
+def service_connection(key: selectors.SelectorKey, mask):
+    sock: socket.socket = key.fileobj
+    data = key.data
+
+    if mask & selectors.EVENT_READ:
+        recv_data = sock.recv(1024)
+
+        if recv_data:
+            print(f"Received {recv_data!r} from connection {data.connid}")
+            data.recv_total += len(recv_data)
+        
+        if not recv_data or data.recv_total == data.msg_total:
+            print(f"Closing connection {data.connid}")
+            sel.unregister(sock)
+            sock.close()
+
+    if mask & selectors.EVENT_WRITE:
+        if not data.outb and data.messages:
+            data.outb and data.messages.pop(0)
+        
+        if data.outb:
+            print(f"Sending {data.outb!r} to connection {data.connid}")
+            sent = sock.send(data.outb)
+            data.outb = data.outb[sent:]
+
+
+if len(sys.argv) != 4:
+    print(f"Usage: {sys.argv[0]} <host> <port> <number of connections>")
+    sys.exit(1)
+
+host, port, num_conns = sys.argv[1:4]
+start_connections(host, int(port), int(num_conns))
+
+try:
     while True:
-        try:
-            user_input = input("Enter 'R' to roll the dice: ")
-            if user_input.upper() == "R":
-                # Send player input to the server
-                client_socket.sendall(user_input.encode("utf-8"))
+        events = sel.select(timeout=1)
 
-                # Receive and print the updated game state
-                data = client_socket.recv(1024).decode("utf-8")
-                print(data)
-
-        except KeyboardInterrupt:
-            print("Exiting the game.")
-            client_socket.close()
+        if events:
+            for key, mask in events:
+                service_connection(key, mask)
+        
+        if not sel.get_map():
             break
-
-if __name__ == "__main__":
-    start_client()
+except KeyboardInterrupt:
+    print("Caught keyboard interruption, exiting")
+finally:
+    sel.close()
