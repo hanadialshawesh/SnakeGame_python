@@ -2,6 +2,7 @@ import selectors
 import sys
 import socket
 import types
+from SnakeGame2 import SnakeGame2
 
 
 def accept_wrapper(sock: socket.socket):
