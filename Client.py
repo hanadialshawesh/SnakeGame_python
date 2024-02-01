@@ -20,17 +20,17 @@ def start_connections(host, port, num_conns):
         sock.setblocking(False)
         sock.connect_ex(server_addr)
     
-    events = selectors.EVENT_READ | selectors.EVENT_WRITE
-    data = types.SimpleNamespace(
-        connid=connid,
-        msg_total=sum(len(m) for m in messages),
-        recv_total=0,
-        messages=messages.copy(),
-        outb=b"",
-    )
+        events = selectors.EVENT_READ | selectors.EVENT_WRITE
+        data = types.SimpleNamespace(
+            connid=connid,
+            msg_total=sum(len(m) for m in messages),
+            recv_total=0,
+            messages=messages.copy(),
+            outb=b"",
+        )
 
-    sel.register(sock, events, data=data)
-
+        sel.register(sock, events, data=data)
+    
 
 def service_connection(key: selectors.SelectorKey, mask):
     sock: socket.socket = key.fileobj
@@ -50,7 +50,7 @@ def service_connection(key: selectors.SelectorKey, mask):
 
     if mask & selectors.EVENT_WRITE:
         if not data.outb and data.messages:
-            data.outb and data.messages.pop(0)
+            data.outb = data.messages.pop(0)
         
         if data.outb:
             print(f"Sending {data.outb!r} to connection {data.connid}")
