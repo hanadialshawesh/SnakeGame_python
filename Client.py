@@ -4,10 +4,8 @@ import selectors
 import types
 
 sel = selectors.DefaultSelector()
-messages = [
-    b"Message 1 from client",
-    b"Message 2 from client"
-]
+
+messages = [input("Enter message: ").encode() for i in range(3)]
 
 
 def start_connections(host, port, num_conns):

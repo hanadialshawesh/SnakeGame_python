@@ -1,5 +1,9 @@
 
 from SnakeGame2 import SnakeGame2
+import socket
+
+socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 def main():
     
     game2 = SnakeGame2()
@@ -34,6 +38,8 @@ def main():
         print("1.with your friend\t3. exit")
     
         answer = int(input())
+        
+        #server
     
         if answer == 1:
            game2.startgame()
